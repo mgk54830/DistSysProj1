@@ -12,19 +12,17 @@ using namespace std;
 
 int main(int argc, char* argv[]) {
 	if(argc < 2) {
-		cout << "1 parameter: Port #" << endl;
+		printf("1 parameter: Port #");
 		exit(1);
 	}
 
 	int portNum = stoi(argv[1]); // port number
 	struct sockaddr_in address;
-	// socklen_t addrlen = sizeof(address);
-	// char buffer[BUFSIZE];
-	char* message = "You have reached the ftp server";
+	char sendbuf[BUFSIZE], recvbuf[BUFSIZE];
 
 	int serverfd = socket(AF_INET, SOCK_STREAM, 0);
 	if(serverfd < 0) {
-		cout << "socket() failed" << endl;
+		printf("socket() failed");
 		exit(1);
 	}
 
@@ -33,26 +31,57 @@ int main(int argc, char* argv[]) {
 	address.sin_port = htons(portNum);
 
 	if(bind(serverfd, (struct sockaddr*) &address, sizeof(address)) < 0) {
-		cout << "bind() failed" << endl;
+		printf("bind() failed");
 		exit(1);
 	}
 
 
 	if(listen(serverfd, MAX_CLIENTS) < 0) {
-		cout << "listen() failed" << endl;
+		printf("listen() failed");
 		exit(1);
 	}
 
+	while(1) { // loop to accept clients
+		int clientfd;
+		if((clientfd = accept(serverfd, NULL, NULL)) < 0) {
+			printf("accept() failed");
+			exit(1);
+		}
+	
+		printf("Client connected\n");
 
-	int clientfd;
-	if((clientfd = accept(serverfd, NULL, NULL)) < 0) {
-		cout << "accept() failed" << endl;
-		exit(1);
+		while(1) { // loop to receive commands
+			if(recv(clientfd, recvbuf, BUFSIZE, 0) < 0) {
+				printf("recv() failed");
+				exit(1);
+			}
+
+			printf("Command received: %s", recvbuf);
+			if(strncmp(recvbuf, "quit", 4) == 0) {
+				printf("Client disconnecting\n");
+				close(clientfd);
+				break;
+			} else if(strncmp(recvbuf, "get", 3) == 0) {
+				strncpy(sendbuf, "Response for get", BUFSIZE);
+			} else if(strncmp(recvbuf, "put", 3) == 0) {
+				strncpy(sendbuf, "Response for put", BUFSIZE);
+			} else if(strncmp(recvbuf, "delete", 6) == 0) {
+				strncpy(sendbuf, "Response for delete", BUFSIZE);
+			} else if(strncmp(recvbuf, "ls", 2) == 0) {
+				strncpy(sendbuf, "Response for ls", BUFSIZE);
+			} else if(strncmp(recvbuf, "cd", 2) == 0) {
+				strncpy(sendbuf, "Response for cd", BUFSIZE);
+			} else if(strncmp(recvbuf, "mkdir", 5) == 0) {
+				strncpy(sendbuf, "Response for mkdir", BUFSIZE);
+			} else if(strncmp(recvbuf, "pwd", 3) == 0) {
+				strncpy(sendbuf, "Response for pwd", BUFSIZE);
+			} else {
+				strncpy(sendbuf, "No such command", BUFSIZE);
+			}
+			send(clientfd, sendbuf, BUFSIZE, 0);
+		}
 	}
 
-	send(clientfd, message, strlen(message), 0);
-
-	close(clientfd);
 	close(serverfd);
 
 	return 0;
