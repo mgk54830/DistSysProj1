@@ -5,6 +5,7 @@
 #include <iostream>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <dirent.h>
 using namespace std;
 
 #define BUFSIZE 256
@@ -18,7 +19,7 @@ int main(int argc, char* argv[]) {
 
 	int portNum = stoi(argv[1]); // port number
 	struct sockaddr_in address;
-	char sendbuf[BUFSIZE], recvbuf[BUFSIZE];
+	char sendbuf[BUFSIZE], recvbuf[BUFSIZE], dirbuf[BUFSIZE];
 
 	int serverfd = socket(AF_INET, SOCK_STREAM, 0);
 	if(serverfd < 0) {
@@ -50,13 +51,18 @@ int main(int argc, char* argv[]) {
 	
 		printf("Client connected\n");
 
+		DIR* dir = NULL;
+		struct dirent* entry;
 		while(1) { // loop to receive commands
+			memset(sendbuf, 0, BUFSIZE); // clear buffer
 			if(recv(clientfd, recvbuf, BUFSIZE, 0) < 0) {
 				printf("recv() failed");
 				exit(1);
 			}
-
 			printf("Command received: %s", recvbuf);
+			getcwd(dirbuf, BUFSIZE); // get current directory path
+
+			// execute command
 			if(strncmp(recvbuf, "quit", 4) == 0) {
 				printf("Client disconnecting\n");
 				close(clientfd);
@@ -68,17 +74,25 @@ int main(int argc, char* argv[]) {
 			} else if(strncmp(recvbuf, "delete", 6) == 0) {
 				strncpy(sendbuf, "Response for delete", BUFSIZE);
 			} else if(strncmp(recvbuf, "ls", 2) == 0) {
-				strncpy(sendbuf, "Response for ls", BUFSIZE);
+				dir = opendir(dirbuf);
+				if(dir == NULL) {
+					printf("ls failed\n");
+					exit(1);
+				}
+				while((entry = readdir(dir)) != NULL) {
+					strncat(sendbuf, entry->d_name, BUFSIZE - strlen(entry->d_name) - 1);
+					strncat(sendbuf, "  ", 2);	
+				}
 			} else if(strncmp(recvbuf, "cd", 2) == 0) {
 				strncpy(sendbuf, "Response for cd", BUFSIZE);
 			} else if(strncmp(recvbuf, "mkdir", 5) == 0) {
 				strncpy(sendbuf, "Response for mkdir", BUFSIZE);
 			} else if(strncmp(recvbuf, "pwd", 3) == 0) {
-				strncpy(sendbuf, "Response for pwd", BUFSIZE);
+				strncpy(sendbuf, dirbuf, BUFSIZE);
 			} else {
 				strncpy(sendbuf, "No such command", BUFSIZE);
 			}
-			send(clientfd, sendbuf, BUFSIZE, 0);
+			send(clientfd, sendbuf, BUFSIZE, 0); // send response string to client
 		}
 	}
 

@@ -39,17 +39,18 @@ int main(int argc, char* argv[]) {
 
 	printf("Connected to FTP server\n");
 
-	while(1) { // communicating with server
-		printf("myftp>");
-		fgets(sendbuf, BUFSIZE, stdin);	
-		send(clientfd, sendbuf, BUFSIZE, 0);
-		if(strncmp(sendbuf, "quit", 4) == 0) break; // quit command
+	// communicating with server
+	while(1) {
+		printf("myftp> ");
+		fgets(sendbuf, BUFSIZE, stdin);	// get user input
+		send(clientfd, sendbuf, BUFSIZE, 0); // send input
+		if(strncmp(sendbuf, "quit", 4) == 0) break; // quit
 		if(recv(clientfd, recvbuf, BUFSIZE, 0) < 0) {
 			printf("recv() failed");
 			close(clientfd);
 			exit(1);
 		}
-		printf("Response received: %s\n", recvbuf);
+		printf("%s\n", recvbuf); // print response
 	}
 
 	printf("Disconnecting from FTP server\n");
