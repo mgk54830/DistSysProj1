@@ -142,8 +142,6 @@ int main(int argc, char* argv[]) {
 				send(clientfd, sendbuf, IOBUFSIZE, 0); // send response string to client
 			}
 		}
-	}
-
 	close(serverfd);
 
 	return 0;
