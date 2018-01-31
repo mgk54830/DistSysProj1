@@ -17,6 +17,10 @@ int main(int argc, char* argv[]) {
 		exit(1);
 	}
 
+	//this is for parser IMPLEMENT MORE OF THIS LATER
+	const char div[3] = " \n";
+	char * token;	
+
 	int portNum = stoi(argv[1]); // port number
 	struct sockaddr_in address;
 	char sendbuf[BUFSIZE], recvbuf[BUFSIZE], dirbuf[BUFSIZE];
@@ -31,7 +35,7 @@ int main(int argc, char* argv[]) {
 	address.sin_addr.s_addr = htonl(INADDR_ANY);
 	address.sin_port = htons(portNum);
 
-	if(bind(serverfd, (struct sockaddr*) &address, sizeof(address)) < 0) {
+	if(::bind(serverfd, (struct sockaddr*) &address, sizeof(address)) < 0) {
 		printf("bind() failed");
 		exit(1);
 	}
@@ -41,7 +45,6 @@ int main(int argc, char* argv[]) {
 		printf("listen() failed");
 		exit(1);
 	}
-
 	while(1) { // loop to accept clients
 		int clientfd;
 		if((clientfd = accept(serverfd, NULL, NULL)) < 0) {
@@ -84,7 +87,18 @@ int main(int argc, char* argv[]) {
 					strncat(sendbuf, "  ", 2);	
 				}
 			} else if(strncmp(recvbuf, "cd", 2) == 0) {
-				strncpy(sendbuf, "Response for cd", BUFSIZE);
+				//get actual command name replace with above^^^^
+				token = strtok(recvbuf, div);
+				//get directory path name
+				token = strtok(NULL, div);
+				printf( "%s", token);
+				//pass token to chdir
+				if(chdir(token) < 0){
+				  strncpy(sendbuf, "cd failed, invalid target", BUFSIZE);
+				  perror("chdir() failed: ");				  
+				} else {
+				  strncpy(sendbuf, "Directory changed", BUFSIZE);
+				}
 			} else if(strncmp(recvbuf, "mkdir", 5) == 0) {
 				strncpy(sendbuf, "Response for mkdir", BUFSIZE);
 			} else if(strncmp(recvbuf, "pwd", 3) == 0) {
