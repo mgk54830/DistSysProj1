@@ -61,28 +61,28 @@ int main(int argc, char* argv[]) {
 		DIR* dir = NULL;
 		struct dirent* entry;
 
-
-
 		while(1) { // loop to receive commands
+
 			memset(sendbuf, 0, IOBUFSIZE); // clear buffer
 			//receive client commands
-
 			if(recv(clientfd, recvbuf, IOBUFSIZE, 0) < 0) {
 				printf("recv() failed");
 				exit(1);
 			}
+
 			//test remove later
 			printf("Command received: %s", recvbuf);
 			//grab command token
 			token = strtok(recvbuf, div);
 			getcwd(dirbuf, IOBUFSIZE); // get current directory path
 
+			/****** COMMAND EXECUTION ********/
 			// execute command
-			if(strncmp(recvbuf, "quit", 4) == 0) {
+			if(strncmp(token, "quit", 4) == 0) {
 				printf("Client disconnecting\n");
 				close(clientfd);
 				break;
-			} else if(strncmp(recvbuf, "get", 3) == 0) {
+			} else if(strncmp(token, "get", 3) == 0) {
 				/*
 			  //strncpy(sendbuf, "Response for get", IOBUFSIZE);
 			  char filepath[CHARBUF];
@@ -107,11 +107,11 @@ int main(int argc, char* argv[]) {
 			      }
 			    }
 					*/
-			} else if(strncmp(recvbuf, "put", 3) == 0) {
+			} else if(strncmp(token, "put", 3) == 0) {
 				strncpy(sendbuf, "Response for put", IOBUFSIZE);
-			} else if(strncmp(recvbuf, "delete", 6) == 0) {
+			} else if(strncmp(token, "delete", 6) == 0) {
 				strncpy(sendbuf, "Response for delete", IOBUFSIZE);
-			} else if(strncmp(recvbuf, "ls", 2) == 0) {
+			} else if(strncmp(token, "ls", 2) == 0) {
 				dir = opendir(dirbuf);
 				if(dir == NULL) {
 					printf("ls failed\n");
@@ -121,7 +121,7 @@ int main(int argc, char* argv[]) {
 					strncat(sendbuf, entry->d_name, IOBUFSIZE);
 					strncat(sendbuf, "  ", 2);
 				}
-			} else if(strncmp(recvbuf, "cd", 2) == 0) {
+			} else if(strncmp(token, "cd", 2) == 0) {
 				//get directory path name
 				token = strtok(NULL, div);
 				printf( "%s", token);
@@ -132,9 +132,9 @@ int main(int argc, char* argv[]) {
 				} else {
 				  strncpy(sendbuf, "Directory changed", IOBUFSIZE);
 				}
-			} else if(strncmp(recvbuf, "mkdir", 5) == 0) {
+			} else if(strncmp(token, "mkdir", 5) == 0) {
 				strncpy(sendbuf, "Response for mkdir", IOBUFSIZE);
-			} else if(strncmp(recvbuf, "pwd", 3) == 0) {
+			} else if(strncmp(token, "pwd", 3) == 0) {
 				strncpy(sendbuf, dirbuf, IOBUFSIZE);
 			} else {
 				strncpy(sendbuf, "No such command", IOBUFSIZE);
