@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
@@ -8,9 +9,9 @@
 #include <dirent.h>
 using namespace std;
 
-#define BUFSIZE 256
+#define IOBUFSIZE 256
 #define MAX_CLIENTS 10
-
+#define CHARBUF 256
 int main(int argc, char* argv[]) {
 	if(argc < 2) {
 		printf("1 parameter: Port #");
@@ -19,11 +20,11 @@ int main(int argc, char* argv[]) {
 
 	//this is for parser IMPLEMENT MORE OF THIS LATER
 	const char div[3] = " \n";
-	char * token;	
+	char * token;
 
 	int portNum = stoi(argv[1]); // port number
 	struct sockaddr_in address;
-	char sendbuf[BUFSIZE], recvbuf[BUFSIZE], dirbuf[BUFSIZE];
+	char sendbuf[IOBUFSIZE], recvbuf[IOBUFSIZE], dirbuf[IOBUFSIZE];
 
 	int serverfd = socket(AF_INET, SOCK_STREAM, 0);
 	if(serverfd < 0) {
@@ -51,19 +52,30 @@ int main(int argc, char* argv[]) {
 			printf("accept() failed");
 			exit(1);
 		}
-	
+
+		/**** Single client has connected *****/
 		printf("Client connected\n");
 
+		//File IO vars
+		FILE* file = NULL;
 		DIR* dir = NULL;
 		struct dirent* entry;
+
+
+
 		while(1) { // loop to receive commands
-			memset(sendbuf, 0, BUFSIZE); // clear buffer
-			if(recv(clientfd, recvbuf, BUFSIZE, 0) < 0) {
+			memset(sendbuf, 0, IOBUFSIZE); // clear buffer
+			//receive client commands
+
+			if(recv(clientfd, recvbuf, IOBUFSIZE, 0) < 0) {
 				printf("recv() failed");
 				exit(1);
 			}
+			//test remove later
 			printf("Command received: %s", recvbuf);
-			getcwd(dirbuf, BUFSIZE); // get current directory path
+			//grab command token
+			token = strtok(recvbuf, div);
+			getcwd(dirbuf, IOBUFSIZE); // get current directory path
 
 			// execute command
 			if(strncmp(recvbuf, "quit", 4) == 0) {
@@ -71,11 +83,34 @@ int main(int argc, char* argv[]) {
 				close(clientfd);
 				break;
 			} else if(strncmp(recvbuf, "get", 3) == 0) {
-				strncpy(sendbuf, "Response for get", BUFSIZE);
+				/*
+			  //strncpy(sendbuf, "Response for get", IOBUFSIZE);
+			  char filepath[CHARBUF];
+			  strncpy(filepath, "./", 2);
+			  char filename[CHARBUF] = NULL;
+			  for(int i = 4; recvbuf[i] != ' '; ++i)
+
+			  file = fopen(, "r");
+			  if (file = NULL) {
+			    printf("get failed\n");
+			    exit(1);
+			  }
+			  //sends file name to client
+			  size_t nbytes = 0;
+			  int sent = 0;
+			  while ((nbytes = fread(sendbuf, sizeof(char), CHARBUF, file)) > 0)
+			    {
+			      int offset = 0;
+			      while ((sent = send(clientfd, sendbuf + offset, nbytes, 0)) > 0) {
+								offset += sent;
+				nbytes -= sent;
+			      }
+			    }
+					*/
 			} else if(strncmp(recvbuf, "put", 3) == 0) {
-				strncpy(sendbuf, "Response for put", BUFSIZE);
+				strncpy(sendbuf, "Response for put", IOBUFSIZE);
 			} else if(strncmp(recvbuf, "delete", 6) == 0) {
-				strncpy(sendbuf, "Response for delete", BUFSIZE);
+				strncpy(sendbuf, "Response for delete", IOBUFSIZE);
 			} else if(strncmp(recvbuf, "ls", 2) == 0) {
 				dir = opendir(dirbuf);
 				if(dir == NULL) {
@@ -83,30 +118,29 @@ int main(int argc, char* argv[]) {
 					exit(1);
 				}
 				while((entry = readdir(dir)) != NULL) {
-					strncat(sendbuf, entry->d_name, BUFSIZE - strlen(entry->d_name) - 1);
-					strncat(sendbuf, "  ", 2);	
+					strncat(sendbuf, entry->d_name, IOBUFSIZE);
+					strncat(sendbuf, "  ", 2);
 				}
 			} else if(strncmp(recvbuf, "cd", 2) == 0) {
-				//get actual command name replace with above^^^^
-				token = strtok(recvbuf, div);
 				//get directory path name
 				token = strtok(NULL, div);
 				printf( "%s", token);
 				//pass token to chdir
 				if(chdir(token) < 0){
-				  strncpy(sendbuf, "cd failed, invalid target", BUFSIZE);
-				  perror("chdir() failed: ");				  
+				  strncpy(sendbuf, "cd failed, invalid target", IOBUFSIZE);
+				  perror("chdir() failed: ");
 				} else {
-				  strncpy(sendbuf, "Directory changed", BUFSIZE);
+				  strncpy(sendbuf, "Directory changed", IOBUFSIZE);
 				}
 			} else if(strncmp(recvbuf, "mkdir", 5) == 0) {
-				strncpy(sendbuf, "Response for mkdir", BUFSIZE);
+				strncpy(sendbuf, "Response for mkdir", IOBUFSIZE);
 			} else if(strncmp(recvbuf, "pwd", 3) == 0) {
-				strncpy(sendbuf, dirbuf, BUFSIZE);
+				strncpy(sendbuf, dirbuf, IOBUFSIZE);
 			} else {
-				strncpy(sendbuf, "No such command", BUFSIZE);
+				strncpy(sendbuf, "No such command", IOBUFSIZE);
 			}
-			send(clientfd, sendbuf, BUFSIZE, 0); // send response string to client
+				send(clientfd, sendbuf, IOBUFSIZE, 0); // send response string to client
+			}
 		}
 	}
 
