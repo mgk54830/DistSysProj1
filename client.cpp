@@ -73,6 +73,8 @@ int main(int argc, char* argv[]) {
 			file = fopen(token, "r");
 			if(file == NULL) {
 				printf("File %s does not exist\n", token);
+				strncpy(sendbuf, "0", BUFSIZE); // send 0 to indicate file DNE
+				send(clientfd, sendbuf, BUFSIZE, 0);
 			} else {
 				// get file size
 				int filesize = 0;
@@ -87,6 +89,7 @@ int main(int argc, char* argv[]) {
 					bzero(sendbuf, BUFSIZE);
 				}
 				fclose(file);
+				printf("File uploaded to remote server\n");
 			}
 		} else {
 			if(recv(clientfd, recvbuf, BUFSIZE, 0) < 0) {

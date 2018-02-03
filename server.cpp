@@ -11,7 +11,6 @@ using namespace std;
 
 #define BUFSIZE 1024
 #define MAX_CLIENTS 10
-#define CHARBUF 256
 int main(int argc, char* argv[]) {
 	if(argc < 2) {
 		printf("1 parameter: Port #");
@@ -100,7 +99,22 @@ int main(int argc, char* argv[]) {
 					fclose(file);
 				}
 			} else if(strncmp(token, "put", 3) == 0) {
-				token = strtok(NULL, div); // get file name
+				recv(clientfd, recvbuf, BUFSIZE, 0);
+				int filesize = stoi(recvbuf); // get file size
+				if(filesize > 0) { // received file size, file exists
+					token = strtok(NULL, div);
+					file = fopen(token, "w");
+					int written = 0; // bytes written
+					int i = 0; // bytes received
+					while(written < filesize) {
+						bzero(recvbuf, BUFSIZE);
+						i = recv(clientfd, recvbuf, BUFSIZE, 0);
+						fwrite(recvbuf, 1, i, file);
+						written += i;
+					}
+					printf("File %s received from client\n", token);
+					fclose(file);
+				}
 			} else if(strncmp(token, "delete", 6) == 0) {
 				strncpy(sendbuf, "Response for delete", BUFSIZE);
 				send(clientfd, sendbuf, BUFSIZE, 0);
