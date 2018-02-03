@@ -63,7 +63,6 @@ int main(int argc, char* argv[]) {
 
 		while(1) { // loop to receive commands
 			memset(sendbuf, 0, BUFSIZE); // clear buffer
-			//memset(recvbuf, 0, BUFSIZE);
 			if(recv(clientfd, recvbuf, BUFSIZE, 0) < 0) {
 				printf("recv() failed");
 				exit(1);
