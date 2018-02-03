@@ -8,7 +8,7 @@
 #include <dirent.h>
 using namespace std;
 
-#define BUFSIZE 256
+#define BUFSIZE 1024
 #define MAX_CLIENTS 10
 
 int main(int argc, char* argv[]) {
@@ -58,6 +58,7 @@ int main(int argc, char* argv[]) {
 		struct dirent* entry;
 		while(1) { // loop to receive commands
 			memset(sendbuf, 0, BUFSIZE); // clear buffer
+			//memset(recvbuf, 0, BUFSIZE);
 			if(recv(clientfd, recvbuf, BUFSIZE, 0) < 0) {
 				printf("recv() failed");
 				exit(1);
@@ -65,18 +66,40 @@ int main(int argc, char* argv[]) {
 			printf("Command received: %s", recvbuf);
 			getcwd(dirbuf, BUFSIZE); // get current directory path
 
-			// execute command
-			if(strncmp(recvbuf, "quit", 4) == 0) {
+			// determine command and execute
+			token = strtok(recvbuf, div); // get command string
+			if(strncmp(token, "quit", 4) == 0) {
 				printf("Client disconnecting\n");
 				close(clientfd);
 				break;
-			} else if(strncmp(recvbuf, "get", 3) == 0) {
-				strncpy(sendbuf, "Response for get", BUFSIZE);
-			} else if(strncmp(recvbuf, "put", 3) == 0) {
-				strncpy(sendbuf, "Response for put", BUFSIZE);
-			} else if(strncmp(recvbuf, "delete", 6) == 0) {
+			} else if(strncmp(token, "get", 3) == 0) {
+				token = strtok(NULL, div); // get file name
+				// check if file exists
+				FILE* file = fopen(token, "r");
+				if(file == NULL) { // file does not exist
+					strncpy(sendbuf, "0", BUFSIZE); // send 0 to indicate file DNE
+					send(clientfd, sendbuf, BUFSIZE, 0);
+				} else { // file found
+					// get file size
+					int filesize = 0;
+					fseek(file, 0, SEEK_END);
+					filesize = ftell(file);
+					fseek(file, 0, SEEK_SET);
+					sprintf(sendbuf, "%d", filesize);
+					send(clientfd, sendbuf, BUFSIZE, 0);
+					int i = 0;
+					while((i = fread(sendbuf, 1, BUFSIZE, file)) > 0) {
+						send(clientfd, sendbuf, i, 0);
+						bzero(sendbuf, BUFSIZE);
+					}
+					fclose(file);
+				}
+			} else if(strncmp(token, "put", 3) == 0) {
+				token = strtok(NULL, div); // get file name
+			} else if(strncmp(token, "delete", 6) == 0) {
 				strncpy(sendbuf, "Response for delete", BUFSIZE);
-			} else if(strncmp(recvbuf, "ls", 2) == 0) {
+				send(clientfd, sendbuf, BUFSIZE, 0);
+			} else if(strncmp(token, "ls", 2) == 0) {
 				dir = opendir(dirbuf);
 				if(dir == NULL) {
 					printf("ls failed\n");
@@ -86,27 +109,26 @@ int main(int argc, char* argv[]) {
 					strncat(sendbuf, entry->d_name, BUFSIZE - strlen(entry->d_name) - 1);
 					strncat(sendbuf, "  ", 2);	
 				}
-			} else if(strncmp(recvbuf, "cd", 2) == 0) {
-				//get actual command name replace with above^^^^
-				token = strtok(recvbuf, div);
-				//get directory path name
-				token = strtok(NULL, div);
-				printf( "%s", token);
-				//pass token to chdir
-				if(chdir(token) < 0){
+				send(clientfd, sendbuf, BUFSIZE, 0);
+			} else if(strncmp(token, "cd", 2) == 0) {
+				token = strtok(NULL, div); // get directory string
+				if(chdir(token) < 0){ // change directory
 				  strncpy(sendbuf, "cd failed, invalid target", BUFSIZE);
 				  perror("chdir() failed: ");				  
 				} else {
 				  strncpy(sendbuf, "Directory changed", BUFSIZE);
 				}
-			} else if(strncmp(recvbuf, "mkdir", 5) == 0) {
+				send(clientfd, sendbuf, BUFSIZE, 0);
+			} else if(strncmp(token, "mkdir", 5) == 0) {
 				strncpy(sendbuf, "Response for mkdir", BUFSIZE);
-			} else if(strncmp(recvbuf, "pwd", 3) == 0) {
+				send(clientfd, sendbuf, BUFSIZE, 0);
+			} else if(strncmp(token, "pwd", 3) == 0) {
 				strncpy(sendbuf, dirbuf, BUFSIZE);
+				send(clientfd, sendbuf, BUFSIZE, 0);
 			} else {
 				strncpy(sendbuf, "No such command", BUFSIZE);
+				send(clientfd, sendbuf, BUFSIZE, 0);
 			}
-			send(clientfd, sendbuf, BUFSIZE, 0); // send response string to client
 		}
 	}
 
