@@ -13,7 +13,7 @@ using namespace std;
 #define MAX_CLIENTS 10
 int main(int argc, char* argv[]) {
 	if(argc < 2) {
-		printf("1 parameter: Port #");
+		printf("1 parameter: Port #\n");
 		exit(1);
 	}
 
@@ -27,7 +27,7 @@ int main(int argc, char* argv[]) {
 
 	int serverfd = socket(AF_INET, SOCK_STREAM, 0);
 	if(serverfd < 0) {
-		printf("socket() failed");
+		printf("socket() failed\n");
 		exit(1);
 	}
 
@@ -36,19 +36,19 @@ int main(int argc, char* argv[]) {
 	address.sin_port = htons(portNum);
 
 	if(bind(serverfd, (struct sockaddr*) &address, sizeof(address)) < 0) {
-		printf("bind() failed");
+		printf("bind() failed\n");
 		exit(1);
 	}
 
 
 	if(listen(serverfd, MAX_CLIENTS) < 0) {
-		printf("listen() failed");
+		printf("listen() failed\n");
 		exit(1);
 	}
 	while(1) { // loop to accept clients
 		int clientfd;
 		if((clientfd = accept(serverfd, NULL, NULL)) < 0) {
-			printf("accept() failed");
+			printf("accept() failed\n");
 			exit(1);
 		}
 
@@ -63,7 +63,7 @@ int main(int argc, char* argv[]) {
 		while(1) { // loop to receive commands
 			memset(sendbuf, 0, BUFSIZE); // clear buffer
 			if(recv(clientfd, recvbuf, BUFSIZE, 0) < 0) {
-				printf("recv() failed");
+				printf("recv() failed\n");
 				exit(1);
 			}
 
@@ -116,7 +116,12 @@ int main(int argc, char* argv[]) {
 					fclose(file);
 				}
 			} else if(strncmp(token, "delete", 6) == 0) {
-				strncpy(sendbuf, "Response for delete", BUFSIZE);
+				token = strtok(NULL, div);
+				if(remove(token) < 0) { // file DNE
+					strncpy(sendbuf, "delete failed, file does not exist", BUFSIZE);
+				} else { // file deleted
+					strncpy(sendbuf, "File deleted", BUFSIZE);
+				}
 				send(clientfd, sendbuf, BUFSIZE, 0);
 			} else if(strncmp(token, "ls", 2) == 0) {
 				dir = opendir(dirbuf);

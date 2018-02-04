@@ -6,17 +6,20 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <netdb.h>
 using namespace std;
 
 #define BUFSIZE 1024
 
+char* get_ip(char* hostname);
+
 int main(int argc, char* argv[]) {
 	if(argc < 3) {
-                printf("2 parameters: Machine name, Port #");
+                printf("2 parameters: Machine name, Port #\n");
                 exit(1);
         }
 
-	//char* machine = argv[1]; // machine name
+	char* machine = argv[1]; // machine name
 	int portNum = stoi(argv[2]); // port number
 	struct sockaddr_in address;
 	char sendbuf[BUFSIZE], recvbuf[BUFSIZE];
@@ -26,17 +29,21 @@ int main(int argc, char* argv[]) {
 
 	int clientfd = socket(AF_INET, SOCK_STREAM, 0);
 	if(clientfd < 0) {
-		printf("socket() failed");
+		printf("socket() failed\n");
 		exit(1);
 	}
 
 	memset(&address, 0, sizeof(address));
 	address.sin_family = AF_INET;
-	address.sin_addr.s_addr = INADDR_ANY;
+	char* ip = get_ip(machine);
+	printf("%s\n", ip);
+	address.sin_addr.s_addr = inet_addr(ip);
         address.sin_port = htons(portNum);
+	//memset(address.sin_zero, '\0', sizeof(address.sin_zero));
 
-	if(connect(clientfd, (struct sockaddr*) &address, sizeof(address)) < 0) {
-		printf("connect() failed");
+	if(connect(clientfd, (struct sockaddr*) &address, sizeof(struct sockaddr_in)) < 0) {
+		printf("connect() failed\n");
+		perror("connect failed");
 		exit(1);
 	}
 
@@ -91,7 +98,7 @@ int main(int argc, char* argv[]) {
 				fclose(file);
 				printf("File uploaded to remote server\n");
 			}
-		} else {
+		} else { // other commands, wait for response
 			if(recv(clientfd, recvbuf, BUFSIZE, 0) < 0) {
 				printf("recv() failed");
 				close(clientfd);
@@ -106,4 +113,21 @@ int main(int argc, char* argv[]) {
 	close(clientfd);
 
 	return 0;
+}
+
+// gets ip string from host name
+char* get_ip(char* hostname) {
+	struct hostent* host;
+	int len = 15;
+	char* ip = (char*)malloc(len + 1);
+	memset(ip, 0, len + 1);
+	if((host = gethostbyname(hostname)) == NULL) {
+		perror("Failed to get ip");
+		exit(1);
+	}
+	if(inet_ntop(AF_INET, (void*)host->h_addr_list[0], ip, len + 1) == NULL) {
+		perror("Failed to resolve host");
+		exit(1);
+	}
+	return ip;
 }
