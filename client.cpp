@@ -36,7 +36,7 @@ int main(int argc, char* argv[]) {
 	memset(&address, 0, sizeof(address));
 	address.sin_family = AF_INET;
 	char* ip = get_ip(machine);
-	printf("%s\n", ip);
+	//printf("%s\n", ip);
 	address.sin_addr.s_addr = inet_addr(ip);
         address.sin_port = htons(portNum);
 	//memset(address.sin_zero, '\0', sizeof(address.sin_zero));

@@ -107,11 +107,13 @@ int main(int argc, char* argv[]) {
 					fclose(file);
 				}
 			} else if(strncmp(token, "put", 3) == 0) {
+				token = strtok(NULL, div);
+				char* filename = (char*)malloc(strlen(token));
+				strncpy(filename, token, strlen(token)); // get file name
 				recv(clientfd, recvbuf, BUFSIZE, 0);
 				int filesize = stoi(recvbuf); // get file size
 				if(filesize > 0) { // received file size, file exists
-					token = strtok(NULL, div);
-					file = fopen(token, "w");
+					file = fopen(filename, "w");
 					int written = 0; // bytes written
 					int i = 0; // bytes received
 					while(written < filesize) {
@@ -120,9 +122,10 @@ int main(int argc, char* argv[]) {
 						fwrite(recvbuf, 1, i, file);
 						written += i;
 					}
-					printf("File %s received from client\n", token);
+					printf("File %s received from client\n", filename);
 					fclose(file);
 				}
+				free(filename);
 			} else if(strncmp(token, "delete", 6) == 0) {
 				token = strtok(NULL, div);
 				if(remove(token) < 0) { // file DNE
@@ -170,8 +173,8 @@ int main(int argc, char* argv[]) {
 				strncpy(sendbuf, "No such command", BUFSIZE);
 				send(clientfd, sendbuf, BUFSIZE, 0);
 			}
-			chdir(home); // return to home
 		}
+		chdir(home); // change to home directory
 	}
 	close(serverfd);
 
