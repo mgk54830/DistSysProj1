@@ -10,6 +10,7 @@
 using namespace std;
 
 #define BUFSIZE 1024
+#define SMALL 256
 #define MAX_CLIENTS 10
 int main(int argc, char* argv[]) {
 	if(argc < 2) {
@@ -19,7 +20,11 @@ int main(int argc, char* argv[]) {
 
 	//this is for parser IMPLEMENT MORE OF THIS LATER
 	const char div[3] = " \n";
-	char * token;
+	char* token;
+
+	// get directory where server resides
+	char home[SMALL];
+	getcwd(home, SMALL);
 
 	int portNum = stoi(argv[1]); // port number
 	struct sockaddr_in address;
@@ -153,6 +158,7 @@ int main(int argc, char* argv[]) {
 				strncpy(sendbuf, "No such command", BUFSIZE);
 				send(clientfd, sendbuf, BUFSIZE, 0);
 			}
+			chdir(home); // return to home
 		}
 	}
 	close(serverfd);
