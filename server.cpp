@@ -7,6 +7,9 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <dirent.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
 using namespace std;
 
 #define BUFSIZE 1024
@@ -40,12 +43,12 @@ int main(int argc, char* argv[]) {
 	address.sin_addr.s_addr = htonl(INADDR_ANY);
 	address.sin_port = htons(portNum);
 
-	if(bind(serverfd, (struct sockaddr*) &address, sizeof(address)) < 0) {
+	if(::bind(serverfd, (struct sockaddr*) &address, sizeof(address)) < 0) {
 		printf("bind() failed\n");
 		exit(1);
 	}
 
-
+	printf("Listening for clients\n");
 	if(listen(serverfd, MAX_CLIENTS) < 0) {
 		printf("listen() failed\n");
 		exit(1);
@@ -143,13 +146,22 @@ int main(int argc, char* argv[]) {
 				token = strtok(NULL, div); // get directory string
 				if(chdir(token) < 0){ // change directory
 				  strncpy(sendbuf, "cd failed, invalid target", BUFSIZE);
-				  perror("chdir() failed: ");				  
+				  perror("chdir() failed: ");
 				} else {
 				  strncpy(sendbuf, "Directory changed", BUFSIZE);
 				}
 				send(clientfd, sendbuf, BUFSIZE, 0);
 			} else if(strncmp(token, "mkdir", 5) == 0) {
-				strncpy(sendbuf, "Response for mkdir", BUFSIZE);
+					token = strtok(NULL, div);
+					struct stat d = {0};
+					if (stat(token, &d) == -1) {
+    				if(mkdir(token, 0700) < 0){
+							strncpy(sendbuf, "mkdir failed", BUFSIZE);
+							perror("mkdir() failed: ");
+						} else strncpy(sendbuf, "Directory created", BUFSIZE);
+					}	else {
+						strncpy(sendbuf, "directory already exists", BUFSIZE);
+					}
 				send(clientfd, sendbuf, BUFSIZE, 0);
 			} else if(strncmp(token, "pwd", 3) == 0) {
 				strncpy(sendbuf, dirbuf, BUFSIZE);
